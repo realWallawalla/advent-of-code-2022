@@ -2,12 +2,6 @@ import java.io.File
 import java.util.*
 fun main() {
     val input = File("input.txt").readLines()
-    val answer = when (System.getenv("part")) {"part2" -> solutionPart2(input) else -> solutionPart1(input) }
-    println(answer)
-}
-
-private fun solutionPart1(input: List<String>): String {
-    val ques = mutableMapOf<Long, Fifo>()
     var numberOfQues = 0
     var queContent = listOf<String>()
     var instructions = listOf<String>()
@@ -19,25 +13,45 @@ private fun solutionPart1(input: List<String>): String {
             break
         }
     }
-    for (i in 1..numberOfQues) { ques.put(i.toLong(), Fifo()) }
-    queContent.forEach { s -> s.split("").forEachIndexed { i, s ->
-        if (s.isOnlyLetters()) {
-            ques.getValue(Math.round((i).toDouble()/4)).add(s)
-        }
-    } }
 
-    instructions.map {
-        listOf(it.substring(5, 7).trim().toLong(), it[it.lastIndexOf("m")+2].digitToInt().toLong(), it.last().digitToInt().toLong()) }
-        .map { Intstruction(it[0], it[1], it[2]) }.forEach{
-            val crates = ques.getValue(it.from).poll(it.polls)
-            ques.getValue(it.to).add(crates)
-        }
+    val answer = when (System.getenv("part")) {"part2" -> solutionPart2(numberOfQues, queContent, instructions)
+        else -> solutionPart1(numberOfQues, queContent, instructions) }
+    println(answer)
+}
 
+private fun solutionPart1(numberOfQues: Int, queContent: List<String>, instructions: List<String>): String {
+    val ques = fillQues(numberOfQues, queContent)
+    moveCrates(instructions, ques, true)
     return ques.map { it.value.poll() }.joinToString(separator="")
 }
 
-private fun solutionPart2(input: List<String>): Int {
-    return 2
+private fun fillQues(numberOfQues: Int, queContent: List<String>): MutableMap<Long, Fifo> {
+    val ques = mutableMapOf<Long, Fifo>()
+    for (i in 1..numberOfQues) { ques.put(i.toLong(), Fifo()) }
+    queContent.forEach { s -> s.split("").forEachIndexed { i, s ->
+            if (s.isOnlyLetters()) {
+                ques.getValue(Math.round((i).toDouble() / 4)).add(s)
+            }
+        } }
+    return ques
+}
+
+private fun moveCrates(instructions: List<String>, ques: MutableMap<Long, Fifo>, isCrane9000: Boolean) {
+    instructions.map {
+        listOf(it.substring(5, 7).trim().toLong(), it[it.lastIndexOf("m") + 2].digitToInt().toLong(), it.last().digitToInt().toLong())
+    }.map { Intstruction(it[0], it[1], it[2]) }.forEach {
+            var crates = ques.getValue(it.from).poll(it.polls)
+            if (!isCrane9000) {
+                crates = LinkedList(crates.reversed())
+            }
+        ques.getValue(it.to).add(crates)
+    }
+}
+
+private fun solutionPart2(numberOfQues: Int, queContent: List<String>, instructions: List<String>): String {
+    val ques = fillQues(numberOfQues, queContent)
+    moveCrates(instructions, ques, false)
+    return ques.map { it.value.poll() }.joinToString(separator="")
 }
 fun String.isOnlyLetters() = length > 0 && all { it.isLetter() }
 class Fifo {
